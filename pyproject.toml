@@ -1,0 +1,18 @@
+[project]
+name = "fintech"
+version = "0.1.0"
+description = "A simple Django project for a fintech application"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "django>=6.0.7",
+    "django-environ>=0.14.0",
+    "djangorestframework>=3.17.1",
+    "psycopg[binary]>=3.3.4",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.15.21",
+]

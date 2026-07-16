@@ -1,0 +1,43 @@
+name: fintech
+
+services:
+
+    backend:
+        build:
+            context: ..
+            dockerfile: _docker/Dockerfile.dev
+            target: backend
+        env_file:
+            - ../.env
+        volumes:
+            - ../:/app
+        ports:
+            - 8005:8000
+        networks:
+            - fintech
+        depends_on:
+            postgres:
+                condition: service_healthy
+
+    postgres:
+        image: postgres:17-alpine
+        env_file:
+            - ../.env
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+        ports:
+            - "7005:5432"
+        networks:
+            - fintech
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+            interval: 5s
+            timeout: 5s
+            retries: 10
+        restart: unless-stopped
+
+networks:
+    fintech:
+
+volumes:
+    postgres_data:

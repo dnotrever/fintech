@@ -1,0 +1,8 @@
+__pycache__/
+_docs/
+_frontend/
+.vscode/
+.claude/
+.git/
+.venv/
+*.pyc
