@@ -1,5 +1,7 @@
 from django.urls import path
 
+from account.views import AccountCreateView
+
 urlpatterns = [
-    path('account/', admin.site.urls),
+    path('', AccountCreateView.as_view(), name='account-create'),
 ]
