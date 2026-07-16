@@ -6,7 +6,7 @@ from account.models import Account
 class AccountCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
-        fields = ['agency', 'account_type']
+        fields = ['account_type']
 
 
 class AccountSerializer(serializers.ModelSerializer):
