@@ -10,10 +10,6 @@ _ACCOUNT_NUMBER_LENGTH = 6
 _MAX_GENERATION_ATTEMPTS = 5
 
 
-class AccountNumberGenerationError(Exception):
-    pass
-
-
 def _generate_account_number() -> str:
     return ''.join(random.choices(string.digits, k=_ACCOUNT_NUMBER_LENGTH))
 
@@ -30,6 +26,9 @@ def create_account(*, owner: AbstractBaseUser, agency: str, account_type: str = 
                 )
         except IntegrityError:
             continue
-
     raise AccountNumberGenerationError('Could not generate a unique account number.')
+
+
+class AccountNumberGenerationError(Exception):
+    pass
 

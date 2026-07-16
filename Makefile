@@ -1,6 +1,6 @@
 DEV_COMPOSE = docker compose -f _docker/docker-compose.dev.yml --env-file .env
 
-.PHONY: dev-build dev-superuser
+.PHONY: dev-build dev-superuser startapp superuser migrations migrate
 
 
 # Setup (run once)
@@ -14,12 +14,18 @@ network:
 dev-build: network
 	$(DEV_COMPOSE) up -d --build
 
-dev-superuser:
-	$(DEV_COMPOSE) exec backend python3 manage.py createsuperuser
-
 
 # Django
 
 startapp:
-	uv run python manage.py startapp ${app}
+	$(DEV_COMPOSE) exec backend uv run python3 manage.py startapp ${app}
+
+superuser:
+	$(DEV_COMPOSE) exec backend uv run python3 manage.py createsuperuser
+
+migrations:
+	$(DEV_COMPOSE) exec backend uv run python3 manage.py makemigrations
+
+migrate:
+	$(DEV_COMPOSE) exec backend uv run python3 manage.py migrate
 

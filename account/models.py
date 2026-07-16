@@ -40,6 +40,7 @@ class Account(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        db_table = 'account'
         constraints = [
             models.CheckConstraint(condition=models.Q(balance__gte=0), name='balance_non_negative'),
         ]
