@@ -2,5 +2,6 @@ __pycache__/
 .claude/
 .venv/
 docs/
+api_tester.rest
 *.pyc
 .env

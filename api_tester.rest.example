@@ -1,0 +1,23 @@
+POST http://127.0.0.1:8005/customers/ HTTP/1.1
+content-type: application/json
+
+{
+    "username": "",
+    "email": "",
+    "password": "",
+    "cpf": "",
+    "phone": "",
+    "first_name": "",
+    "last_name": "",
+    "birth_date": "",
+    "address": {
+        "number": "",
+        "street": "",
+        "complement": "",
+        "city": "",
+        "state": "",
+        "country": "",
+        "zip_code": ""
+    }
+}
+

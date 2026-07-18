@@ -3,12 +3,6 @@ from rest_framework import serializers
 from account.models import Account
 
 
-class AccountCreateSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Account
-        fields = ['account_type']
-
-
 class AccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = Account
@@ -23,4 +17,3 @@ class AccountSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = fields
-

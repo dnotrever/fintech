@@ -1,3 +1,12 @@
+## Decorators
+
+#### `@dataclass`
+É um decorator do Python que gera automaticamente `__init__`, `__repr__` e `__eq__` pra uma classe, a partir dos atributos declarados (evita escrever esse boilerplate na mão).
+`frozen=True` — deixa a instância imutável depois de criada: qualquer tentativa de reatribuir um atributo levanta FrozenInstanceError, em vez de simplesmente sobrescrever o valor como uma classe normal permitiria.
+
+#### `@staticmethod`
+Marca um método que não recebe self — não acessa nem depende dos atributos da instância. É basicamente uma função normal que só está agrupada dentro da classe por organização/semântica.
+
 ## Commands
 
 #### `python manage.py migrate --noinput`

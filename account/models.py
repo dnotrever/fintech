@@ -25,7 +25,7 @@ class Account(models.Model):
     }
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='accounts')
+    customer = models.OneToOneField(Customer, on_delete=models.PROTECT, related_name='account')
 
     account_number = models.CharField(max_length=6, unique=True)
     agency = models.CharField(max_length=5, blank=False)
