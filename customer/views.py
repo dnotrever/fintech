@@ -15,7 +15,9 @@ class CustomerCreateView(APIView):
     def post(self, request: Request) -> Response:
         input_serializer = CustomerCreateSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
-        customer = register_customer(**input_serializer.validated_data)
+        data = dict(input_serializer.validated_data)
+        data.pop('password_confirm')
+        customer = register_customer(**data)
         output_serializer = CustomerSerializer(customer)
         return Response(output_serializer.data, status=status.HTTP_201_CREATED)
 

@@ -29,6 +29,7 @@ class CustomerCreateSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150)
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
+    password_confirm = serializers.CharField(write_only=True)
     cpf = serializers.CharField(max_length=11)
     phone = serializers.CharField(max_length=20)
     first_name = serializers.CharField(max_length=255)
@@ -56,6 +57,11 @@ class CustomerCreateSerializer(serializers.Serializer):
         except DjangoValidationError as exc:
             raise serializers.ValidationError(list(exc.messages)) from exc
         return value
+
+    def validate(self, attrs: dict) -> dict:
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({'password_confirm': 'Passwords do not match.'})
+        return attrs
 
 
 class CustomerSerializer(serializers.ModelSerializer):

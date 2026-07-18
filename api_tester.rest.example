@@ -1,3 +1,5 @@
+### Open Account
+
 POST http://127.0.0.1:8005/customers/ HTTP/1.1
 content-type: application/json
 
@@ -5,6 +7,7 @@ content-type: application/json
     "username": "",
     "email": "",
     "password": "",
+    "confirm_password": "",
     "cpf": "",
     "phone": "",
     "first_name": "",
@@ -21,3 +24,17 @@ content-type: application/json
     }
 }
 
+
+### Login
+
+POST http://127.0.0.1:8005/auth/login/ HTTP/1.1
+content-type: application/json
+Authorization: Token 
+
+{
+    "username": "",
+    "password": ""
+}
+
+
+### 

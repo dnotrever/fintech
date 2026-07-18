@@ -94,6 +94,7 @@ class CustomerCreateViewTests(TestCase):
             'username': 'joao123',
             'email': 'joao@example.com',
             'password': 'Str0ngPassw0rd!',
+            'password_confirm': 'Str0ngPassw0rd!',
             'cpf': VALID_CPF,
             'phone': '11999998888',
             'first_name': 'João',
@@ -134,7 +135,21 @@ class CustomerCreateViewTests(TestCase):
     def test_rejects_weak_password(self):
         client = APIClient()
 
-        response = client.post('/customers/', self._payload(password='123', username='weakpw'), format='json')
+        response = client.post(
+            '/customers/',
+            self._payload(password='123', password_confirm='123', username='weakpw'),
+            format='json',
+        )
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('password', response.data)
+
+    def test_rejects_mismatched_password_confirmation(self):
+        client = APIClient()
+
+        response = client.post(
+            '/customers/', self._payload(password_confirm='Different123!'), format='json'
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('password_confirm', response.data)
