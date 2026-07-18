@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     'customer',
     'account',
     'authentication',
+    'notification',
 ]
 
 MIDDLEWARE = [
@@ -114,6 +115,9 @@ REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ],
+    'DEFAULT_THROTTLE_RATES': {
+        'resend-confirmation': '3/hour',
+    },
 }
 
 SIMPLE_JWT = {
@@ -122,4 +126,11 @@ SIMPLE_JWT = {
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
+
+
+# Notification
+
+RESEND_API_KEY = env('RESEND_API_KEY')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='onboarding@resend.dev')
+BACKEND_BASE_URL = env('BACKEND_BASE_URL', default='http://localhost:8005')
 

@@ -4,7 +4,7 @@ from typing import Callable
 
 from django.db import IntegrityError, transaction
 
-from account.models import Account, AccountType
+from account.models import Account, AccountStatus, AccountType
 from customer.models import Customer
 
 _ACCOUNT_NUMBER_LENGTH = 6
@@ -20,6 +20,7 @@ def open_account(
     *,
     customer: Customer,
     account_type: str = AccountType.CHECKING,
+    status: str = AccountStatus.ACTIVE,
     number_generator: Callable[[], str] = generate_account_number,
 ) -> Account:
     for _ in range(_MAX_GENERATION_ATTEMPTS):
@@ -29,6 +30,7 @@ def open_account(
                     customer=customer,
                     agency=_DEFAULT_AGENCY,
                     account_type=account_type,
+                    status=status,
                     account_number=number_generator(),
                 )
         except IntegrityError:

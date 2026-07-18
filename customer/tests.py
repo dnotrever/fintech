@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from account.models import Account
+from account.models import Account, AccountStatus
 from customer.domain import CPF
 from customer.models import Address, Customer
 from customer.services import register_customer
@@ -52,6 +52,11 @@ class CPFTests(TestCase):
 
 
 class RegisterCustomerTests(TestCase):
+    def setUp(self):
+        patcher = patch('customer.services.send_confirmation_email')
+        self.mock_send_confirmation_email = patcher.start()
+        self.addCleanup(patcher.stop)
+
     def test_creates_user_customer_address_and_account(self):
         customer = register_customer(
             username='joao123',
@@ -65,9 +70,12 @@ class RegisterCustomerTests(TestCase):
             address=_ADDRESS,
         )
 
-        self.assertTrue(User.objects.filter(username='joao123').exists())
+        user = User.objects.get(username='joao123')
+        self.assertFalse(user.is_active)
         self.assertEqual(Address.objects.filter(customer=customer).count(), 1)
-        self.assertTrue(Account.objects.filter(customer=customer).exists())
+        account = Account.objects.get(customer=customer)
+        self.assertEqual(account.status, AccountStatus.PENDING)
+        self.mock_send_confirmation_email.assert_called_once_with(user)
 
     def test_compensates_when_account_opening_fails(self):
         with self.assertRaises(RuntimeError):
@@ -89,6 +97,11 @@ class RegisterCustomerTests(TestCase):
 
 
 class CustomerCreateViewTests(TestCase):
+    def setUp(self):
+        patcher = patch('customer.services.send_confirmation_email')
+        self.mock_send_confirmation_email = patcher.start()
+        self.addCleanup(patcher.stop)
+
     def _payload(self, **overrides):
         payload = {
             'username': 'joao123',
@@ -113,6 +126,7 @@ class CustomerCreateViewTests(TestCase):
         self.assertEqual(response.status_code, 201)
         self.assertIsNotNone(response.data['account'])
         self.assertEqual(response.data['account']['account_type'], 'checking')
+        self.assertEqual(response.data['account']['status'], 'pending')
         self.assertEqual(len(response.data['addresses']), 1)
 
     def test_rejects_duplicate_username(self):
@@ -153,3 +167,10 @@ class CustomerCreateViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('password_confirm', response.data)
+
+    def test_registration_triggers_confirmation_email(self):
+        client = APIClient()
+
+        client.post('/customers/', self._payload(), format='json')
+
+        self.mock_send_confirmation_email.assert_called_once()

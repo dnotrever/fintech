@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from account.models import Account, AccountType
+from account.models import Account, AccountStatus, AccountType, InvalidAccountStatusTransitionError
 from account.services import AccountNumberGenerationError, open_account
 from customer.models import Customer
 
@@ -43,3 +43,36 @@ class OpenAccountTests(TestCase):
 
         with self.assertRaises(AccountNumberGenerationError):
             open_account(customer=other_customer, number_generator=lambda: '111111')
+
+
+class OpenAccountStatusTests(TestCase):
+    def test_defaults_to_active_status(self):
+        customer = _create_customer()
+
+        account = open_account(customer=customer)
+
+        self.assertEqual(account.status, AccountStatus.ACTIVE)
+
+    def test_accepts_explicit_pending_status(self):
+        customer = _create_customer()
+
+        account = open_account(customer=customer, status=AccountStatus.PENDING)
+
+        self.assertEqual(account.status, AccountStatus.PENDING)
+
+
+class AccountStatusTransitionTests(TestCase):
+    def test_pending_can_transition_to_active(self):
+        customer = _create_customer()
+        account = open_account(customer=customer, status=AccountStatus.PENDING)
+
+        account.change_status(AccountStatus.ACTIVE)
+
+        self.assertEqual(account.status, AccountStatus.ACTIVE)
+
+    def test_pending_cannot_transition_to_blocked(self):
+        customer = _create_customer()
+        account = open_account(customer=customer, status=AccountStatus.PENDING)
+
+        with self.assertRaises(InvalidAccountStatusTransitionError):
+            account.change_status(AccountStatus.BLOCKED)

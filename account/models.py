@@ -11,6 +11,7 @@ class AccountType(models.TextChoices):
 
 
 class AccountStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
     ACTIVE = 'active', 'Active'
     BLOCKED = 'blocked', 'Blocked'
     CLOSED = 'closed', 'Closed'
@@ -19,6 +20,7 @@ class AccountStatus(models.TextChoices):
 class Account(models.Model):
 
     _ALLOWED_STATUS_TRANSITIONS = {
+        AccountStatus.PENDING: {AccountStatus.ACTIVE},
         AccountStatus.ACTIVE: {AccountStatus.BLOCKED, AccountStatus.CLOSED},
         AccountStatus.BLOCKED: {AccountStatus.ACTIVE, AccountStatus.CLOSED},
         AccountStatus.CLOSED: set(),

@@ -2,8 +2,9 @@ from datetime import date
 
 from django.contrib.auth import get_user_model
 
-from account.models import AccountType
+from account.models import AccountStatus, AccountType
 from account.services import open_account
+from authentication.services import send_confirmation_email
 from customer.domain import CPF
 from customer.models import Address, Customer
 
@@ -22,12 +23,14 @@ def register_customer(
     birth_date: date | None = None,
     address: dict,
 ) -> Customer:
-    
+
     user = None
     customer = None
 
     try:
-        user = User.objects.create_user(username=username, email=email, password=password)
+        user = User.objects.create_user(
+            username=username, email=email, password=password, is_active=False
+        )
         customer = Customer.objects.create(
             user=user,
             cpf=str(CPF(cpf)),
@@ -37,7 +40,7 @@ def register_customer(
             birth_date=birth_date,
         )
         Address.objects.create(customer=customer, **address)
-        open_account(customer=customer, account_type=AccountType.CHECKING)
+        open_account(customer=customer, account_type=AccountType.CHECKING, status=AccountStatus.PENDING)
     except Exception:
         if customer is not None:
             if hasattr(customer, 'account'):
@@ -46,6 +49,7 @@ def register_customer(
         if user is not None:
             user.delete()
         raise
-    
+
+    send_confirmation_email(user)
     return customer
 
