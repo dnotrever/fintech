@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 def send_confirmation_email(user) -> None:
     EmailConfirmationToken.objects.filter(user=user, confirmed_at__isnull=True).delete()
     confirmation = EmailConfirmationToken.objects.create(user=user)
-    confirmation_url = f'{settings.BACKEND_BASE_URL}/auth/confirm/{confirmation.token}/'
+    confirmation_url = f'{settings.FRONTEND_BASE_URL}/auth/confirm/{confirmation.token}/'
     try:
         send_email(
             to=user.email,

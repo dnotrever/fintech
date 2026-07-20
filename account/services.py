@@ -12,7 +12,7 @@ _MAX_GENERATION_ATTEMPTS = 5
 _DEFAULT_AGENCY = '00001'
 
 
-def generate_account_number() -> str:
+def _generate_account_number() -> str:
     return ''.join(random.choices(string.digits, k=_ACCOUNT_NUMBER_LENGTH))
 
 
@@ -21,7 +21,7 @@ def open_account(
     customer: Customer,
     account_type: str = AccountType.CHECKING,
     status: str = AccountStatus.ACTIVE,
-    number_generator: Callable[[], str] = generate_account_number,
+    number_generator: Callable[[], str] = _generate_account_number,
 ) -> Account:
     for _ in range(_MAX_GENERATION_ATTEMPTS):
         try:

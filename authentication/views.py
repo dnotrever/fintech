@@ -36,20 +36,17 @@ class ConfirmEmailView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request: Request, token: str) -> Response:
+
         try:
             confirmation = EmailConfirmationToken.objects.select_related('user__customer__account').get(token=token)
         except EmailConfirmationToken.DoesNotExist:
             return Response({'detail': 'Invalid confirmation token.'}, status=status.HTTP_404_NOT_FOUND)
 
         if confirmation.confirmed_at is not None:
-            return Response(
-                {'detail': 'This confirmation link was already used.'}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'This confirmation link was already used.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if confirmation.is_expired():
-            return Response(
-                {'detail': 'This confirmation link has expired.'}, status=status.HTTP_400_BAD_REQUEST
-            )
+            return Response({'detail': 'This confirmation link has expired.'}, status=status.HTTP_400_BAD_REQUEST)
 
         confirmation.confirmed_at = timezone.now()
         confirmation.save()
@@ -74,13 +71,8 @@ class ResendConfirmationView(APIView):
     def post(self, request: Request) -> Response:
         serializer = ResendConfirmationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = User.objects.filter(
-            username=serializer.validated_data['username'], is_active=False
-        ).first()
+        user = User.objects.filter(username=serializer.validated_data['username'], is_active=False).first()
         if user is not None:
             send_confirmation_email(user)
-        return Response(
-            {'detail': 'If the account exists and is not confirmed yet, a new email was sent.'},
-            status=status.HTTP_200_OK,
-        )
+        return Response({'detail': 'If the account exists and is not confirmed yet, a new email was sent.'}, status=status.HTTP_200_OK)
 

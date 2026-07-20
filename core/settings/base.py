@@ -21,10 +21,10 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-    'customer',
-    'account',
     'authentication',
     'notification',
+    'customer',
+    'account',
 ]
 
 MIDDLEWARE = [
@@ -131,6 +131,6 @@ SIMPLE_JWT = {
 # Notification
 
 RESEND_API_KEY = env('RESEND_API_KEY')
-DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='onboarding@resend.dev')
-BACKEND_BASE_URL = env('BACKEND_BASE_URL', default='http://localhost:8005')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
+FRONTEND_BASE_URL = env('FRONTEND_BASE_URL')
 

@@ -51,5 +51,6 @@ def register_customer(
         raise
 
     send_confirmation_email(user)
+    
     return customer
 
