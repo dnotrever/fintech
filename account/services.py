@@ -1,10 +1,11 @@
 import random
 import string
+from decimal import Decimal
 from typing import Callable
 
 from django.db import IntegrityError, transaction
 
-from account.models import Account, AccountStatus, AccountType
+from account.models import Account, AccountStatus, AccountType, Transaction, TransactionStatus, TransactionType
 from customer.models import Customer
 
 _ACCOUNT_NUMBER_LENGTH = 6
@@ -39,4 +40,33 @@ def open_account(
 
 
 class AccountNumberGenerationError(Exception):
+    pass
+
+
+def deposit(*, account: Account, amount: Decimal, idempotency_key: str) -> Transaction:
+    existing = Transaction.objects.filter(account=account, idempotency_key=idempotency_key).first()
+    if existing is not None:
+        if existing.amount != amount:
+            raise IdempotencyKeyConflictError(
+                f'Idempotency key {idempotency_key} was already used with a different amount.'
+            )
+        return existing
+
+    try:
+        with transaction.atomic():
+            account.credit(amount)
+            account.save(update_fields=['balance', 'updated_at'])
+            return Transaction.objects.create(
+                account=account,
+                type=TransactionType.DEPOSIT,
+                amount=amount,
+                balance_after=account.balance,
+                status=TransactionStatus.COMPLETED,
+                idempotency_key=idempotency_key,
+            )
+    except IntegrityError:
+        return Transaction.objects.get(account=account, idempotency_key=idempotency_key)
+
+
+class IdempotencyKeyConflictError(Exception):
     pass

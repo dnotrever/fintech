@@ -25,17 +25,6 @@ content-type: application/json
 }
 
 
-### Login
-
-POST http://127.0.0.1:8005/auth/login/ HTTP/1.1
-content-type: application/json
-
-{
-    "username": "",
-    "password": ""
-}
-
-
 ### Resend Confirmation E-mail
 
 POST http://127.0.0.1:8005/auth/confirm/resend/ HTTP/1.1
@@ -47,14 +36,25 @@ content-type: application/json
 }
 
 
+### Login
+# @name login
+POST http://127.0.0.1:8005/auth/login/ HTTP/1.1
+content-type: application/json
+
+{
+    "username": "",
+    "password": ""
+}
+
+
 ### Logout
 
 POST http://127.0.0.1:8005/auth/logout/ HTTP/1.1
 content-type: application/json
-Authorization: Bearer 
+Authorization: Bearer {{login.response.body.$.access}}
 
 {
-    "refresh": ""
+    "refresh": "{{login.response.body.$.refresh}}"
 }
 
 
@@ -62,8 +62,16 @@ Authorization: Bearer
 
 GET http://127.0.0.1:8005/accounts/balance/ HTTP/1.1
 content-type: application/json
-Authorization: Bearer 
+Authorization: Bearer {{login.response.body.$.access}}
 
 
-### 
+### Deposit
 
+POST http://127.0.0.1:8005/accounts/deposit/ HTTP/1.1
+content-type: application/json
+Authorization: Bearer {{login.response.body.$.access}}
+Idempotency-Key: deposit-1
+
+{
+    "amount": ""
+}

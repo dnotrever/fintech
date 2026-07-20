@@ -75,3 +75,37 @@ class InsufficientFundsError(Exception):
 class InvalidAccountStatusTransitionError(Exception):
     pass
 
+
+class TransactionType(models.TextChoices):
+    DEPOSIT = 'deposit', 'Deposit'
+
+
+class TransactionStatus(models.TextChoices):
+    PENDING = 'pending', 'Pending'
+    COMPLETED = 'completed', 'Completed'
+    FAILED = 'failed', 'Failed'
+
+
+class Transaction(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    account = models.ForeignKey(Account, on_delete=models.PROTECT, related_name='transactions')
+
+    type = models.CharField(max_length=10, choices=TransactionType.choices)
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    balance_after = models.DecimalField(max_digits=14, decimal_places=2)
+    status = models.CharField(max_length=10, choices=TransactionStatus.choices, default=TransactionStatus.PENDING)
+
+    idempotency_key = models.CharField(max_length=255)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'transaction'
+        constraints = [
+            models.UniqueConstraint(fields=['account', 'idempotency_key'], name='unique_idempotency_key_per_account')
+        ]
+
+    def __str__(self) -> str:
+        return f'{self.type} {self.amount} on {self.account}'
+
