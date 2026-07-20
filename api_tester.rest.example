@@ -29,7 +29,6 @@ content-type: application/json
 
 POST http://127.0.0.1:8005/auth/login/ HTTP/1.1
 content-type: application/json
-Authorization: Token 
 
 {
     "username": "",
@@ -37,4 +36,16 @@ Authorization: Token
 }
 
 
-### 
+### Resend E-mail
+
+POST http://127.0.0.1:8005/auth/confirm/resend/ HTTP/1.1
+content-type: application/json
+
+{
+    "username": "",
+    "email": ""
+}
+
+
+### Logout
+
