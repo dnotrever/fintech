@@ -17,3 +17,10 @@ class AccountSerializer(serializers.ModelSerializer):
             'created_at',
         ]
         read_only_fields = fields
+
+
+class BalanceSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Account
+        fields = ['balance', 'currency']
+        read_only_fields = fields

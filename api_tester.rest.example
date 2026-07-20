@@ -1,4 +1,4 @@
-### Open Account
+### Open Account (Register)
 
 POST http://127.0.0.1:8005/customers/ HTTP/1.1
 content-type: application/json
@@ -36,7 +36,7 @@ content-type: application/json
 }
 
 
-### Resend E-mail
+### Resend Confirmation E-mail
 
 POST http://127.0.0.1:8005/auth/confirm/resend/ HTTP/1.1
 content-type: application/json
@@ -48,4 +48,22 @@ content-type: application/json
 
 
 ### Logout
+
+POST http://127.0.0.1:8005/auth/logout/ HTTP/1.1
+content-type: application/json
+Authorization: Bearer 
+
+{
+    "refresh": ""
+}
+
+
+### Balance
+
+GET http://127.0.0.1:8005/accounts/balance/ HTTP/1.1
+content-type: application/json
+Authorization: Bearer 
+
+
+### 
 
