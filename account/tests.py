@@ -23,7 +23,7 @@ User = get_user_model()
 _PASSWORD = 'Str0ngPassw0rd!'
 
 
-def _create_customer(*, username: str = 'jane', cpf: str = '12345678901') -> Customer:
+def _create_customer(*, username: str = 'jane', cpf: str = '11144477735') -> Customer:
     user = User.objects.create_user(
         username=username, email=f'{username}@example.com', password='Str0ngPassw0rd!'
     )
@@ -54,7 +54,7 @@ class OpenAccountTests(TestCase):
     def test_raises_when_number_generator_keeps_colliding(self):
         customer = _create_customer()
         open_account(customer=customer, number_generator=lambda: '111111')
-        other_customer = _create_customer(username='john', cpf='98765432100')
+        other_customer = _create_customer(username='john', cpf='22255588846')
 
         with self.assertRaises(AccountNumberGenerationError):
             open_account(customer=other_customer, number_generator=lambda: '111111')

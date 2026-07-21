@@ -22,12 +22,15 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
+
         input_serializer = LogoutSerializer(data=request.data)
         input_serializer.is_valid(raise_exception=True)
+
         try:
             RefreshToken(input_serializer.validated_data['refresh']).blacklist()
         except TokenError as exc:
             raise serializers.ValidationError({'refresh': str(exc)}) from exc
+        
         return Response(status=status.HTTP_205_RESET_CONTENT)
 
 

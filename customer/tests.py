@@ -51,6 +51,20 @@ class CPFTests(TestCase):
         self.assertEqual(CPF(VALID_CPF), CPF(VALID_CPF))
 
 
+class CustomerModelTests(TestCase):
+    def test_rejects_invalid_cpf_on_save(self):
+        user = User.objects.create_user(username='joao123', email='joao@example.com', password='pw')
+
+        with self.assertRaises(ValueError):
+            Customer.objects.create(
+                user=user,
+                cpf='12345678900',
+                phone='11999998888',
+                first_name='João',
+                last_name='Silva',
+            )
+
+
 class RegisterCustomerTests(TestCase):
     def setUp(self):
         patcher = patch('customer.services.send_confirmation_email')

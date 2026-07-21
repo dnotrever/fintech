@@ -28,9 +28,7 @@ def register_customer(
     customer = None
 
     try:
-        user = User.objects.create_user(
-            username=username, email=email, password=password, is_active=False
-        )
+        user = User.objects.create_user(username=username, email=email, password=password, is_active=False)
         customer = Customer.objects.create(
             user=user,
             cpf=str(CPF(cpf)),

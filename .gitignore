@@ -5,3 +5,4 @@ docs/
 api_tester.rest
 *.pyc
 .env
+.ruff_cache/

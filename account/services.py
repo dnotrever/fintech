@@ -43,7 +43,12 @@ class AccountNumberGenerationError(Exception):
     pass
 
 
-def deposit(*, account: Account, amount: Decimal, idempotency_key: str) -> Transaction:
+def deposit(
+    *,
+    account: Account,
+    amount: Decimal,
+    idempotency_key: str
+) -> Transaction:
     existing = Transaction.objects.filter(account=account, idempotency_key=idempotency_key).first()
     if existing is not None:
         if existing.amount != amount:
@@ -51,7 +56,6 @@ def deposit(*, account: Account, amount: Decimal, idempotency_key: str) -> Trans
                 f'Idempotency key {idempotency_key} was already used with a different amount.'
             )
         return existing
-
     try:
         with transaction.atomic():
             account.credit(amount)
@@ -70,3 +74,4 @@ def deposit(*, account: Account, amount: Decimal, idempotency_key: str) -> Trans
 
 class IdempotencyKeyConflictError(Exception):
     pass
+

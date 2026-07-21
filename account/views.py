@@ -22,6 +22,7 @@ class DepositView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request) -> Response:
+        
         idempotency_key = request.headers.get('Idempotency-Key')
         if not idempotency_key:
             return Response({'detail': 'Idempotency-Key header is required.'}, status=400)
@@ -40,3 +41,4 @@ class DepositView(APIView):
             return Response({'detail': str(e)}, status=409)
 
         return Response(TransactionSerializer(created).data, status=201)
+
