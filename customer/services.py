@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from account.models import AccountStatus, AccountType
 from account.services import open_account
 from authentication.services import send_confirmation_email
-from customer.domain import CPF
+from customer.domain import CPF, Phone
 from customer.models import Address, Customer
 
 User = get_user_model()
@@ -32,7 +32,7 @@ def register_customer(
         customer = Customer.objects.create(
             user=user,
             cpf=str(CPF(cpf)),
-            phone=phone,
+            phone=str(Phone(phone)),
             first_name=first_name,
             last_name=last_name,
             birth_date=birth_date,

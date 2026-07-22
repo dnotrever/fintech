@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 from account.serializers import AccountSerializer
-from customer.domain import CPF
+from customer.domain import CPF, Phone
 from customer.models import Address, Customer
 
 User = get_user_model()
@@ -49,6 +49,13 @@ class CustomerCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(str(exc)) from exc
         if Customer.objects.filter(cpf=value).exists():
             raise serializers.ValidationError('CPF already registered.')
+        return value
+
+    def validate_phone(self, value: str) -> str:
+        try:
+            Phone(value)
+        except ValueError as exc:
+            raise serializers.ValidationError(str(exc)) from exc
         return value
 
     def validate_password(self, value: str) -> str:

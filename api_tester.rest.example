@@ -7,7 +7,7 @@ content-type: application/json
     "username": "",
     "email": "",
     "password": "",
-    "confirm_password": "",
+    "password_confirm": "",
     "cpf": "",
     "phone": "",
     "first_name": "",

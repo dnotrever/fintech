@@ -4,7 +4,7 @@ Gera/atualiza o arquivo uv.lock a partir do pyproject.toml — resolve todas as 
 #### `uv add <package>[@<version>]` | `uv add -- dev <package>[@<version>]`
 Instala dependências.
 
-### `uv remove <package>`
+#### `uv remove <package>`
 Remove dependências.
 
 #### `uv sync --frozen`
@@ -13,3 +13,4 @@ O `--frozen` não recalcula/atualiza o lockfile antes; usa ele como está. Se es
 
 #### `uv run <command>`
 Executa um comando dentro do .venv do projeto, sem precisar ativar (source .venv/bin/activate) manualmente antes.
+

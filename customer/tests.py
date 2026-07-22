@@ -6,7 +6,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from account.models import Account, AccountStatus
-from customer.domain import CPF
+from customer.domain import CPF, Phone
 from customer.models import Address, Customer
 from customer.services import register_customer
 
@@ -51,6 +51,47 @@ class CPFTests(TestCase):
         self.assertEqual(CPF(VALID_CPF), CPF(VALID_CPF))
 
 
+class PhoneTests(TestCase):
+    def test_accepts_valid_mobile(self):
+        phone = Phone('11999998888')
+
+        self.assertEqual(str(phone), '11999998888')
+
+    def test_accepts_valid_landline(self):
+        phone = Phone('1133334444')
+
+        self.assertEqual(str(phone), '1133334444')
+
+    def test_rejects_invalid_ddd(self):
+        with self.assertRaises(ValueError):
+            Phone('20999998888')
+
+    def test_rejects_mobile_without_leading_nine(self):
+        with self.assertRaises(ValueError):
+            Phone('11899998888')
+
+    def test_rejects_landline_with_invalid_leading_digit(self):
+        with self.assertRaises(ValueError):
+            Phone('1199998888')
+
+    def test_rejects_wrong_length(self):
+        with self.assertRaises(ValueError):
+            Phone('119999988')
+
+    def test_rejects_non_digit_characters(self):
+        with self.assertRaises(ValueError):
+            Phone('11999-98888')
+
+    def test_is_immutable(self):
+        phone = Phone('11999998888')
+
+        with self.assertRaises(FrozenInstanceError):
+            phone.value = '11888887777'
+
+    def test_equality_by_value(self):
+        self.assertEqual(Phone('11999998888'), Phone('11999998888'))
+
+
 class CustomerModelTests(TestCase):
     def test_rejects_invalid_cpf_on_save(self):
         user = User.objects.create_user(username='joao123', email='joao@example.com', password='pw')
@@ -60,6 +101,18 @@ class CustomerModelTests(TestCase):
                 user=user,
                 cpf='12345678900',
                 phone='11999998888',
+                first_name='João',
+                last_name='Silva',
+            )
+
+    def test_rejects_invalid_phone_on_save(self):
+        user = User.objects.create_user(username='joao123', email='joao@example.com', password='pw')
+
+        with self.assertRaises(ValueError):
+            Customer.objects.create(
+                user=user,
+                cpf=VALID_CPF,
+                phone='20999998888',
                 first_name='João',
                 last_name='Silva',
             )
@@ -90,6 +143,20 @@ class RegisterCustomerTests(TestCase):
         account = Account.objects.get(customer=customer)
         self.assertEqual(account.status, AccountStatus.PENDING)
         self.mock_send_confirmation_email.assert_called_once_with(user)
+
+    def test_rejects_invalid_phone(self):
+        with self.assertRaises(ValueError):
+            register_customer(
+                username='joao123',
+                email='joao@example.com',
+                password='Str0ngPassw0rd!',
+                cpf=VALID_CPF,
+                phone='20999998888',
+                first_name='João',
+                last_name='Silva',
+                birth_date=None,
+                address=_ADDRESS,
+            )
 
     def test_compensates_when_account_opening_fails(self):
         with self.assertRaises(RuntimeError):
@@ -159,6 +226,14 @@ class CustomerCreateViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertIn('cpf', response.data)
+
+    def test_rejects_invalid_phone(self):
+        client = APIClient()
+
+        response = client.post('/customers/', self._payload(phone='20999998888'), format='json')
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('phone', response.data)
 
     def test_rejects_weak_password(self):
         client = APIClient()

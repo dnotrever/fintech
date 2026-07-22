@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from customer.domain import CPF
+from customer.domain import CPF, Phone
 
 
 class Customer(models.Model):
@@ -25,6 +25,7 @@ class Customer(models.Model):
 
     def save(self, *args, **kwargs) -> None:
         CPF(self.cpf)
+        Phone(self.phone)
         super().save(*args, **kwargs)
 
 
