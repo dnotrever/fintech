@@ -1,9 +1,11 @@
+from datetime import date, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from account.models import (
@@ -15,6 +17,8 @@ from account.models import (
     TransactionStatus,
     TransactionType,
 )
+from account.selectors import get_statement
+from account.serializers import StatementFilterSerializer
 from account.services import AccountNumberGenerationError, IdempotencyKeyConflictError, deposit, open_account
 from customer.models import Customer
 
@@ -212,6 +216,72 @@ class DepositViewTests(TestCase):
         self.assertEqual(self.account.balance, Decimal('100.00'))
 
 
+class AccountStatementViewTests(TestCase):
+    def setUp(self):
+        customer = _create_customer()
+        self.account = open_account(customer=customer, status=AccountStatus.ACTIVE)
+        self.client = APIClient()
+
+    def _login(self):
+        response = self.client.post(
+            '/auth/login/', {'username': 'jane', 'password': _PASSWORD}, format='json'
+        )
+        return response.data['access']
+
+    def _create_transaction(self, *, account, created_at, idempotency_key):
+        txn = Transaction.objects.create(
+            account=account,
+            type=TransactionType.DEPOSIT,
+            amount=Decimal('10.00'),
+            balance_after=Decimal('10.00'),
+            status=TransactionStatus.COMPLETED,
+            idempotency_key=idempotency_key,
+        )
+        Transaction.objects.filter(pk=txn.pk).update(created_at=created_at)
+        return txn
+
+    def test_authenticated_customer_gets_paginated_statement(self):
+        access = self._login()
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+        self._create_transaction(account=self.account, created_at=timezone.now(), idempotency_key='key-1')
+
+        response = self.client.get('/accounts/statement/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('count', response.data)
+        self.assertIn('results', response.data)
+        self.assertEqual(response.data['count'], 1)
+
+    def test_unauthenticated_request_returns_401(self):
+        response = self.client.get('/accounts/statement/')
+
+        self.assertEqual(response.status_code, 401)
+
+    def test_inverted_date_range_returns_400(self):
+        access = self._login()
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+
+        response = self.client.get('/accounts/statement/', {
+            'start_date': date.today().isoformat(),
+            'end_date': (date.today() - timedelta(days=1)).isoformat(),
+        })
+
+        self.assertEqual(response.status_code, 400)
+
+    def test_does_not_leak_transactions_from_other_accounts(self):
+        other_customer = _create_customer(username='john', cpf='22255588846')
+        other_account = open_account(customer=other_customer, status=AccountStatus.ACTIVE)
+        self._create_transaction(account=other_account, created_at=timezone.now(), idempotency_key='other-key')
+
+        access = self._login()
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access}')
+
+        response = self.client.get('/accounts/statement/')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['count'], 0)
+
+
 class TransactionModelTests(TestCase):
     def setUp(self):
         customer = _create_customer()
@@ -252,6 +322,93 @@ class TransactionModelTests(TestCase):
                 status=TransactionStatus.COMPLETED,
                 idempotency_key='dup-key',
             )
+
+
+class GetStatementTests(TestCase):
+    def setUp(self):
+        customer = _create_customer()
+        self.account = open_account(customer=customer, status=AccountStatus.ACTIVE)
+        other_customer = _create_customer(username='john', cpf='22255588846')
+        self.other_account = open_account(customer=other_customer, status=AccountStatus.ACTIVE)
+
+    def _create_transaction(self, *, account, created_at, idempotency_key):
+        txn = Transaction.objects.create(
+            account=account,
+            type=TransactionType.DEPOSIT,
+            amount=Decimal('10.00'),
+            balance_after=Decimal('10.00'),
+            status=TransactionStatus.COMPLETED,
+            idempotency_key=idempotency_key,
+        )
+        Transaction.objects.filter(pk=txn.pk).update(created_at=created_at)
+        txn.refresh_from_db()
+        return txn
+
+    def test_returns_only_transactions_within_range_for_the_account(self):
+        today = timezone.now()
+        in_range = self._create_transaction(account=self.account, created_at=today, idempotency_key='in-range')
+        out_of_range = self._create_transaction(
+            account=self.account, created_at=today - timedelta(days=10), idempotency_key='out-of-range'
+        )
+        other_accounts_txn = self._create_transaction(
+            account=self.other_account, created_at=today, idempotency_key='other-account'
+        )
+
+        result = list(get_statement(
+            account=self.account, start_date=today.date() - timedelta(days=1), end_date=today.date()
+        ))
+
+        self.assertIn(in_range, result)
+        self.assertNotIn(out_of_range, result)
+        self.assertNotIn(other_accounts_txn, result)
+
+    def test_orders_by_most_recent_first(self):
+        today = timezone.now()
+        older = self._create_transaction(
+            account=self.account, created_at=today - timedelta(days=1), idempotency_key='older'
+        )
+        newer = self._create_transaction(account=self.account, created_at=today, idempotency_key='newer')
+
+        result = list(get_statement(
+            account=self.account, start_date=today.date() - timedelta(days=7), end_date=today.date()
+        ))
+
+        self.assertEqual(result, [newer, older])
+
+
+class StatementFilterSerializerTests(TestCase):
+    def test_defaults_to_last_seven_days_when_no_params(self):
+        serializer = StatementFilterSerializer(data={})
+        serializer.is_valid(raise_exception=True)
+
+        today = date.today()
+        self.assertEqual(serializer.validated_data['end_date'], today)
+        self.assertEqual(serializer.validated_data['start_date'], today - timedelta(days=7))
+
+    def test_defaults_end_date_to_today_when_only_start_date_given(self):
+        start = date.today() - timedelta(days=3)
+        serializer = StatementFilterSerializer(data={'start_date': start.isoformat()})
+        serializer.is_valid(raise_exception=True)
+
+        self.assertEqual(serializer.validated_data['start_date'], start)
+        self.assertEqual(serializer.validated_data['end_date'], date.today())
+
+    def test_defaults_start_date_to_seven_days_before_end_date_when_only_end_date_given(self):
+        end = date.today() - timedelta(days=2)
+        serializer = StatementFilterSerializer(data={'end_date': end.isoformat()})
+        serializer.is_valid(raise_exception=True)
+
+        self.assertEqual(serializer.validated_data['end_date'], end)
+        self.assertEqual(serializer.validated_data['start_date'], end - timedelta(days=7))
+
+    def test_rejects_start_date_after_end_date(self):
+        serializer = StatementFilterSerializer(data={
+            'start_date': date.today().isoformat(),
+            'end_date': (date.today() - timedelta(days=1)).isoformat(),
+        })
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('start_date', serializer.errors)
 
 
 class DepositServiceTests(TestCase):

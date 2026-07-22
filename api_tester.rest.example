@@ -37,7 +37,9 @@ content-type: application/json
 
 
 ### Login
+
 # @name login
+
 POST http://127.0.0.1:8005/auth/login/ HTTP/1.1
 content-type: application/json
 
@@ -75,3 +77,16 @@ Idempotency-Key: deposit-1
 {
     "amount": ""
 }
+
+
+### Statements
+
+@start_date = 2026-07-20
+@end_date = 2026-07-22
+
+GET http://127.0.0.1:8005/accounts/statement/?start_date={{start_date}}&end_date={{end_date}} HTTP/1.1
+Authorization: Bearer {{login.response.body.$.access}}
+
+
+### 
+
