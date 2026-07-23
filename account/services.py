@@ -52,9 +52,7 @@ def deposit(
     existing = Transaction.objects.filter(account=account, idempotency_key=idempotency_key).first()
     if existing is not None:
         if existing.amount != amount:
-            raise IdempotencyKeyConflictError(
-                f'Idempotency key {idempotency_key} was already used with a different amount.'
-            )
+            raise IdempotencyKeyConflictError(f'Idempotency key {idempotency_key} was already used with a different amount.')
         return existing
     try:
         with transaction.atomic():

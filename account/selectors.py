@@ -15,3 +15,4 @@ def get_statement(*, account: Account, start_date: date, end_date: date) -> Quer
         account=account,
         created_at__date__range=(start_date, end_date),
     ).order_by('-created_at')
+
