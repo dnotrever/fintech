@@ -134,3 +134,17 @@ RESEND_API_KEY = env('RESEND_API_KEY')
 DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 FRONTEND_BASE_URL = env('FRONTEND_BASE_URL')
 
+
+# Redis / Cache / Celery
+
+REDIS_URL = env('REDIS_URL')
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': REDIS_URL,
+    }
+}
+
+CELERY_BROKER_URL = REDIS_URL
+

@@ -1,14 +1,16 @@
 from dataclasses import FrozenInstanceError
+from decimal import Decimal
 from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from rest_framework.test import APIClient
 
-from account.models import Account, AccountStatus
+from account.models import Account, AccountStatus, Transaction
+from account.services import deposit
 from customer.domain import CPF, Phone
 from customer.models import Address, Customer
-from customer.services import register_customer
+from customer.services import delete_user_completely, register_customer
 
 User = get_user_model()
 
@@ -175,6 +177,75 @@ class RegisterCustomerTests(TestCase):
 
         self.assertFalse(User.objects.filter(username='joao123').exists())
         self.assertFalse(Customer.objects.filter(cpf=VALID_CPF).exists())
+
+
+class DeleteUserCompletelyTests(TestCase):
+    def setUp(self):
+        patcher = patch('customer.services.send_confirmation_email')
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_deletes_user_customer_address_and_account(self):
+        customer = register_customer(
+            username='joao123',
+            email='joao@example.com',
+            password='Str0ngPassw0rd!',
+            cpf=VALID_CPF,
+            phone='11999998888',
+            first_name='João',
+            last_name='Silva',
+            birth_date=None,
+            address=_ADDRESS,
+        )
+        user = User.objects.get(username='joao123')
+
+        delete_user_completely(user=user)
+
+        self.assertFalse(User.objects.filter(username='joao123').exists())
+        self.assertFalse(Customer.objects.filter(cpf=VALID_CPF).exists())
+        self.assertFalse(Address.objects.filter(customer=customer).exists())
+        self.assertFalse(Account.objects.filter(customer=customer).exists())
+
+    def test_deletes_transactions_before_account_despite_protect(self):
+        customer = register_customer(
+            username='joao123',
+            email='joao@example.com',
+            password='Str0ngPassw0rd!',
+            cpf=VALID_CPF,
+            phone='11999998888',
+            first_name='João',
+            last_name='Silva',
+            birth_date=None,
+            address=_ADDRESS,
+        )
+        account = Account.objects.get(customer=customer)
+        account.status = AccountStatus.ACTIVE
+        account.save()
+        deposit(account=account, amount=Decimal('50.00'), idempotency_key='key-1')
+        user = User.objects.get(username='joao123')
+
+        delete_user_completely(user=user)
+
+        self.assertFalse(User.objects.filter(username='joao123').exists())
+        self.assertFalse(Transaction.objects.filter(account=account).exists())
+
+    def test_deletes_user_without_customer(self):
+        user = User.objects.create_user(username='staffuser', password='Str0ngPassw0rd!')
+
+        delete_user_completely(user=user)
+
+        self.assertFalse(User.objects.filter(username='staffuser').exists())
+
+    def test_deletes_customer_without_account(self):
+        user = User.objects.create_user(username='joao123', email='joao@example.com', password='Str0ngPassw0rd!')
+        customer = Customer.objects.create(
+            user=user, cpf=VALID_CPF, phone='11999998888', first_name='João', last_name='Silva',
+        )
+
+        delete_user_completely(user=user)
+
+        self.assertFalse(User.objects.filter(username='joao123').exists())
+        self.assertFalse(Customer.objects.filter(pk=customer.pk).exists())
 
 
 class CustomerCreateViewTests(TestCase):

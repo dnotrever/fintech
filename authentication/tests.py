@@ -103,30 +103,33 @@ class SendConfirmationEmailTests(TestCase):
             username='jane', email='jane@example.com', password=_PASSWORD, is_active=False
         )
 
-    @patch('authentication.services.send_email')
-    def test_creates_token_and_sends_email(self, mock_send_email):
-        send_confirmation_email(self.user)
+    @patch('notification.tasks.send_email_task.delay')
+    def test_creates_token_and_dispatches_email_task_on_commit(self, mock_delay):
+        with self.captureOnCommitCallbacks(execute=True):
+            send_confirmation_email(self.user)
 
         self.assertEqual(EmailConfirmationToken.objects.filter(user=self.user).count(), 1)
-        mock_send_email.assert_called_once()
-        self.assertEqual(mock_send_email.call_args.kwargs['to'], self.user.email)
+        mock_delay.assert_called_once()
+        self.assertEqual(mock_delay.call_args.kwargs['to'], self.user.email)
 
-    @patch('authentication.services.send_email')
-    def test_resend_invalidates_previous_unconfirmed_token(self, mock_send_email):
-        send_confirmation_email(self.user)
+    @patch('notification.tasks.send_email_task.delay')
+    def test_resend_invalidates_previous_unconfirmed_token(self, mock_delay):
+        with self.captureOnCommitCallbacks(execute=True):
+            send_confirmation_email(self.user)
         first_token = EmailConfirmationToken.objects.get(user=self.user).token
 
-        send_confirmation_email(self.user)
+        with self.captureOnCommitCallbacks(execute=True):
+            send_confirmation_email(self.user)
 
         tokens = EmailConfirmationToken.objects.filter(user=self.user)
         self.assertEqual(tokens.count(), 1)
         self.assertNotEqual(tokens.first().token, first_token)
 
-    @patch('authentication.services.send_email', side_effect=RuntimeError('resend is down'))
-    def test_send_failure_does_not_raise(self, mock_send_email):
+    @patch('notification.tasks.send_email_task.delay')
+    def test_does_not_dispatch_email_task_before_transaction_commits(self, mock_delay):
         send_confirmation_email(self.user)
 
-        self.assertEqual(EmailConfirmationToken.objects.filter(user=self.user).count(), 1)
+        mock_delay.assert_not_called()
 
 
 class ConfirmEmailViewTests(TestCase):
@@ -140,8 +143,7 @@ class ConfirmEmailViewTests(TestCase):
         self.account = open_account(customer=self.customer, status=AccountStatus.PENDING)
         self.client = APIClient()
 
-    @patch('authentication.services.send_email')
-    def test_valid_token_activates_user_and_account(self, mock_send_email):
+    def test_valid_token_activates_user_and_account(self):
         send_confirmation_email(self.user)
         token = EmailConfirmationToken.objects.get(user=self.user).token
 
@@ -158,8 +160,7 @@ class ConfirmEmailViewTests(TestCase):
 
         self.assertEqual(response.status_code, 404)
 
-    @patch('authentication.services.send_email')
-    def test_already_confirmed_token_returns_400(self, mock_send_email):
+    def test_already_confirmed_token_returns_400(self):
         send_confirmation_email(self.user)
         token = EmailConfirmationToken.objects.get(user=self.user).token
         self.client.get(f'/auth/confirm/{token}/')
@@ -168,8 +169,7 @@ class ConfirmEmailViewTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
 
-    @patch('authentication.services.send_email')
-    def test_expired_token_returns_400(self, mock_send_email):
+    def test_expired_token_returns_400(self):
         send_confirmation_email(self.user)
         confirmation = EmailConfirmationToken.objects.get(user=self.user)
         EmailConfirmationToken.objects.filter(pk=confirmation.pk).update(
@@ -189,8 +189,7 @@ class ResendConfirmationViewTests(TestCase):
         )
         self.client = APIClient()
 
-    @patch('authentication.services.send_email')
-    def test_resend_for_unconfirmed_user_returns_200_and_creates_token(self, mock_send_email):
+    def test_resend_for_unconfirmed_user_returns_200_and_creates_token(self):
         response = self.client.post('/auth/confirm/resend/', {'username': 'jane'}, format='json')
 
         self.assertEqual(response.status_code, 200)
@@ -202,8 +201,7 @@ class ResendConfirmationViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(EmailConfirmationToken.objects.count(), 0)
 
-    @patch('authentication.services.send_email')
-    def test_fourth_resend_within_the_hour_is_throttled(self, mock_send_email):
+    def test_fourth_resend_within_the_hour_is_throttled(self):
         for _ in range(3):
             response = self.client.post('/auth/confirm/resend/', {'username': 'jane'}, format='json')
             self.assertEqual(response.status_code, 200)

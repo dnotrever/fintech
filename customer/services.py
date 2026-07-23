@@ -1,6 +1,7 @@
 from datetime import date
 
 from django.contrib.auth import get_user_model
+from django.db import transaction
 
 from account.models import AccountStatus, AccountType
 from account.services import open_account
@@ -49,6 +50,18 @@ def register_customer(
         raise
 
     send_confirmation_email(user)
-    
+
     return customer
+
+
+def delete_user_completely(*, user) -> None:
+    with transaction.atomic():
+        customer = getattr(user, 'customer', None)
+        if customer is not None:
+            account = getattr(customer, 'account', None)
+            if account is not None:
+                account.transactions.all().delete()
+                account.delete()
+            customer.delete()
+        user.delete()
 

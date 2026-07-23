@@ -28,3 +28,13 @@ Faz o migrate rodar sem pedir confirmação interativa (aquelas perguntas tipo "
 
 #### `settings.AUTH_USER_MODEL`
 É a forma recomendada de referenciar o model de usuário em ForeignKey/OneToOneField, em vez de importar User direto.
+
+
+## Transaction
+
+#### `transaction.atomic()`
+Delimita um bloco onde tudo funciona como uma unidade só: se qualquer exceção não tratada escapar do bloco, o Django reverte (rollback) todas as escritas feitas dentro dele; se o bloco termina sem erro, tudo é commitado junto.
+
+#### `transaction.on_commit(callback)`
+Registra uma função pra rodar depois que a transação em volta commitar de verdade — não na hora em que você chama on_commit. Se não houver transação ativa (autocommit ligado, fora de qualquer atomic()), o callback roda na hora.
+
